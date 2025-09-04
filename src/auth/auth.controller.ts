@@ -75,7 +75,7 @@ export class AuthController {
     }
   }
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Get('userInfo')
   async getUserInfo(
     @CurrentUser() user: AuthenticatedUser,
