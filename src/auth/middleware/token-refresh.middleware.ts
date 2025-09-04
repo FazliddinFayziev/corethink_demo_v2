@@ -23,14 +23,14 @@ export class TokenRefreshMiddleware implements NestMiddleware {
                 res.cookie('accessToken', newTokens.accessToken, {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax',
+                    sameSite: 'none',
                     maxAge: 24 * 60 * 60 * 1000 // 24 hours
                 });
 
                 res.cookie('refreshToken', newTokens.refreshToken, {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax',
+                    sameSite: 'none',
                     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
                 });
 
