@@ -35,7 +35,7 @@ export class AuthController {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
-    res.redirect(`http://localhost:5173`);
+    res.redirect(`https://corethink-test.web.app`);
   }
 
   @UseGuards(GoogleAuthGuard)
@@ -62,7 +62,7 @@ export class AuthController {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    res.redirect(`http://localhost:5173`);
+    res.redirect(`https://corethink-test.web.app`);
   }
 
   @Post('refresh')
