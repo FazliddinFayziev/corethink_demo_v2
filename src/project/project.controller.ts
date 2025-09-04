@@ -22,7 +22,7 @@ import type { AuthenticatedUser } from 'src/auth/decorator/jwt.decorator';
 export class ProjectController {
     constructor(private readonly projectService: ProjectService) { }
 
-    // @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard)
     @Post()
     async createProject(
         @Body() createProjectDto: CreateProjectDto,
@@ -210,7 +210,7 @@ export class ProjectController {
         }
     }
 
-    // @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard)
     @Post(':id/chat')
     async sendMessage(
         @Param('id') projectId: string,
