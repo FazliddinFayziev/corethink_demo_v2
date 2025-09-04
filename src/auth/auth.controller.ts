@@ -19,22 +19,22 @@ export class AuthController {
   @Get('github/callback')
   async githubCallback(@Req() req, @Res() res: Response) {
     const tokens = await this.authService.login(req.user.id);
-
-    // Set secure cookies instead of URL params
+    
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Always true for HTTPS
+      sameSite: 'none', // CRITICAL: Required for cross-domain
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Always true for HTTPS  
+      sameSite: 'none', // CRITICAL: Required for cross-domain
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
+    console.log('🔥 GitHub cookies set, redirecting...');
     res.redirect(`https://corethink-test.web.app`);
   }
 
@@ -47,21 +47,22 @@ export class AuthController {
   async googleCallback(@Req() req, @Res() res: Response) {
     const tokens = await this.authService.login(req.user.id);
 
-    // Same cookie setup
+    // FIXED: Cross-domain cookie settings
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Always true for HTTPS
+      sameSite: 'none', // CRITICAL: Required for cross-domain
       maxAge: 24 * 60 * 60 * 1000
     });
 
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Always true for HTTPS
+      sameSite: 'none', // CRITICAL: Required for cross-domain
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
+    console.log('🔥 Google cookies set, redirecting...');
     res.redirect(`https://corethink-test.web.app`);
   }
 
@@ -75,19 +76,41 @@ export class AuthController {
     }
   }
 
-  // @UseGuards(JwtAuthGuard)
+  // FIXED: Uncommented the guard and added proper error handling
+  @UseGuards(JwtAuthGuard)
   @Get('userInfo')
   async getUserInfo(
     @CurrentUser() user: AuthenticatedUser,
   ) {
+    console.log('🔥 getUserInfo called for user:', user?.userId);
     try {
       const userInfo = await this.authService.getUserInfo(user.userId);
+      console.log('🔥 User info retrieved successfully');
       return userInfo;
     } catch (error) {
+      console.log('🔥 getUserInfo error:', error.message);
       if (error instanceof NotFoundException) {
         throw error;
       }
       throw new UnauthorizedException('Failed to get user information');
     }
+  }
+
+  // BONUS: Add a logout endpoint
+  @Post('logout')
+  async logout(@Res() res: Response) {
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none'
+    });
+    
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none'
+    });
+    
+    return res.json({ message: 'Logged out successfully' });
   }
 }
