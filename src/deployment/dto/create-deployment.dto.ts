@@ -1,12 +1,11 @@
-import { IsString, IsNotEmpty, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty } from 'class-validator';
 
 export class CreateDeploymentDto {
-    // @IsString()
-    // @IsNotEmpty()
-    // htmlCode: string;
+    @IsString()
+    @IsNotEmpty()
+    htmlCode: string;
 
     @IsString()
-    @IsOptional()
-    @MaxLength(50)
-    projectName?: string;
+    @IsNotEmpty()
+    projectId: string;
 }

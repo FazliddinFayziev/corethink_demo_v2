@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { DbService } from 'src/db/db.service';
 
 @Injectable()
 export class DeploymentService {
@@ -9,7 +8,9 @@ export class DeploymentService {
   private readonly vercelToken = process.env.VERCEL_TOKEN;
   private readonly vercelTeamId = process.env.VERCEL_TEAM_ID; // Optional: if using team account
 
-  constructor() {
+  constructor(
+    private readonly db: DbService,
+  ) {
     if (!this.vercelToken) {
       throw new Error('VERCEL_TOKEN environment variable is required');
     }
@@ -17,29 +18,27 @@ export class DeploymentService {
 
   /**
    * Deploy HTML code to Vercel and return the deployment URL
-   * @param projectName - Project name for the deployment
+   * @param htmlContent - HTML content to deploy
+   * @param projectId - Project ID to get domain name and update URL
    * @returns Promise<string> - The deployment URL
    */
-  async deployHtmlToVercel(projectName: any): Promise<string> {
+  async deployHtmlToVercel(htmlContent: string, projectId: string): Promise<string> {
     try {
-      // Use provided project name
-      const deploymentName = projectName;
-      
-      this.logger.log(`Starting deployment for project: ${deploymentName}`);
+      // Get project from database
+      const project = await this.db.project.findUnique({
+        where: { id: projectId }
+      });
 
-      // Read index.html from src/deployment folder
-      const htmlFilePath = join(process.cwd(), 'src', 'deployment', 'index.html');
-      let htmlContent: string;
-      
-      try {
-        htmlContent = readFileSync(htmlFilePath, 'utf-8');
-        this.logger.log(`Successfully read index.html from: ${htmlFilePath}`);
-      } catch (fileError) {
-        this.logger.error(`Failed to read index.html from ${htmlFilePath}:`, fileError.message);
-        throw new Error(`Could not read index.html file from src/deployment folder: ${fileError.message}`);
+      if (!project) {
+        throw new Error('Project not found');
       }
 
-      // Prepare deployment payload
+      // Use domainName as deployment name
+      const deploymentName = project.domainName;
+
+      this.logger.log(`Starting deployment for project: ${deploymentName}`);
+
+      // Prepare deployment payload - deploy HTML content directly
       const deploymentPayload = {
         name: deploymentName,
         files: [
@@ -78,21 +77,27 @@ export class DeploymentService {
 
       // Wait for deployment to be ready
       const deploymentUrl = await this.waitForDeployment(deploymentData.id, deploymentData.url);
-      
-      this.logger.log(`Deployment successful: ${deploymentUrl}`);
+
+      // Update project URL in database
+      await this.db.project.update({
+        where: { id: projectId },
+        data: { url: deploymentUrl }
+      });
+
+      this.logger.log(`Deployment successful and project updated: ${deploymentUrl}`);
       return deploymentUrl;
 
     } catch (error) {
       this.logger.error('Deployment failed:', error.response?.data || error.message);
-      
+
       if (error.response?.status === 401) {
         throw new Error('Invalid Vercel token. Please check your VERCEL_TOKEN environment variable.');
       }
-      
+
       if (error.response?.status === 403) {
         throw new Error('Insufficient permissions. Please check your Vercel token permissions.');
       }
-      
+
       throw new Error(`Vercel deployment failed: ${error.response?.data?.error?.message || error.message}`);
     }
   }
@@ -124,7 +129,7 @@ export class DeploymentService {
         );
 
         const deployment = statusResponse.data;
-        
+
         this.logger.log(`Deployment status: ${deployment.readyState}`);
 
         if (deployment.readyState === 'READY') {
@@ -132,7 +137,7 @@ export class DeploymentService {
           const cleanUrl = this.getCleanUrl(deployment.name, deployment.alias);
           return cleanUrl;
         }
-        
+
         if (deployment.readyState === 'ERROR') {
           throw new Error('Deployment failed on Vercel');
         }
@@ -145,7 +150,7 @@ export class DeploymentService {
         if (error.message === 'Deployment failed on Vercel') {
           throw error;
         }
-        
+
         this.logger.warn(`Error checking deployment status: ${error.message}`);
         await new Promise(resolve => setTimeout(resolve, 10000));
         attempts++;
@@ -168,7 +173,7 @@ export class DeploymentService {
     if (aliases && aliases.length > 0) {
       return `https://${aliases[0]}`;
     }
-    
+
     // Otherwise, use the clean deployment name format
     return `https://${deploymentName}.vercel.app`;
   }

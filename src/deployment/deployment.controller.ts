@@ -1,7 +1,6 @@
 import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { DeploymentService } from './deployment.service';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
-import { template } from './template';
 
 @Controller('api/deployment')
 export class DeploymentController {
@@ -11,8 +10,8 @@ export class DeploymentController {
     async deployToVercel(@Body() createDeploymentDto: CreateDeploymentDto) {
         try {
             const deploymentUrl = await this.deploymentService.deployHtmlToVercel(
-                // template,
-                createDeploymentDto.projectName
+                createDeploymentDto.htmlCode,
+                createDeploymentDto.projectId
             );
 
             return {
