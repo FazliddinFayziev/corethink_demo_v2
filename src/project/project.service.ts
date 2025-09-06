@@ -69,19 +69,11 @@ export class ProjectService {
         }
     }
 
-    async getAllProjects(filters?: { userId?: string; category?: string }) {
-        const where: Prisma.ProjectWhereInput = {};
-
-        if (filters?.userId) {
-            where.userId = filters.userId;
-        }
-
-        if (filters?.category) {
-            where.category = filters.category;
-        }
-
+    async getAllProjects(userId: string) {
         return await this.db.project.findMany({
-            where,
+            where: {
+                userId: userId,
+            },
             include: {
                 user: {
                     select: {

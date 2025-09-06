@@ -38,14 +38,22 @@ export class ProjectController {
         }
     }
 
+    @UseGuards(JwtAuthGuard)
     @Get()
     async getAllProjects(
-        @Query('userId') userId?: string,
-        @Query('category') category?: string
+        @CurrentUser() user: AuthenticatedUser
     ) {
         try {
-            return await this.projectService.getAllProjects({ userId, category });
+            const projects = await this.projectService.getAllProjects(user.userId);
+
+            return {
+                success: true,
+                data: projects,
+                count: projects.length,
+                message: 'Projects fetched successfully'
+            };
         } catch (error) {
+            console.error('Error fetching projects:', error);
             throw new HttpException(
                 'Failed to fetch projects',
                 HttpStatus.INTERNAL_SERVER_ERROR
